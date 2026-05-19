@@ -329,6 +329,7 @@ dependencies = [
  "libc",
  "sha2",
  "tokio",
+ "winapi",
 ]
 
 [[package]]

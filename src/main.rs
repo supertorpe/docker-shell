@@ -121,12 +121,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let final_user = match args.user.as_deref() {
         Some(u) => parse_user_mode(u),
         None if args.custom => {
-            let options = vec![
-                "Default (container default)",
-                "Host current user",
-                "Root",
-                "Custom user:group"
-            ];
+            #[cfg(unix)]
+            let options = vec!["Default (container default)", "Host current user", "Root", "Custom user:group"];
+            #[cfg(windows)]
+            let options = vec!["Default (container default)", "Root", "Custom user:group"];
+
             let selection = Select::with_theme(&ColorfulTheme::default())
                 .with_prompt("Select User Mode")
                 .items(&options)
@@ -135,12 +134,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             match selection {
                 0 => None,
+                #[cfg(unix)]
                 1 => {
                     let uid = unsafe { libc::getuid() };
                     let gid = unsafe { libc::getgid() };
                     Some(format!("{}:{}", uid, gid))
                 }
-                2 => Some("0:0".to_string()),
+                i if (cfg!(unix) && i == 2) || (!cfg!(unix) && i == 1) => Some("0:0".to_string()),
                 _ => {
                     let custom: String = Input::with_theme(&ColorfulTheme::default())
                         .with_prompt("Enter user:group (e.g. 1000:1000)")
@@ -230,11 +230,14 @@ fn parse_user_mode(mode: &str) -> Option<String> {
     match mode {
         "default" => None,
         "root" => Some("0:0".to_string()),
+        #[cfg(unix)]
         "host" => {
             let uid = unsafe { libc::getuid() };
             let gid = unsafe { libc::getgid() };
             Some(format!("{}:{}", uid, gid))
         }
+        #[cfg(windows)]
+        "host" => None,
         custom => Some(custom.to_string()),
     }
 }
@@ -344,12 +347,11 @@ async fn run_container_mode(
     let final_user = match args.user.as_deref() {
         Some(u) => parse_user_mode(u),
         None if args.custom => {
-            let options = vec![
-                "Default (container default)",
-                "Host current user",
-                "Root",
-                "Custom user:group",
-            ];
+            #[cfg(unix)]
+            let options = vec!["Default (container default)", "Host current user", "Root", "Custom user:group"];
+            #[cfg(windows)]
+            let options = vec!["Default (container default)", "Root", "Custom user:group"];
+
             let selection = Select::with_theme(&ColorfulTheme::default())
                 .with_prompt("Select User Mode")
                 .items(&options)
@@ -358,12 +360,13 @@ async fn run_container_mode(
 
             match selection {
                 0 => None,
+                #[cfg(unix)]
                 1 => {
                     let uid = unsafe { libc::getuid() };
                     let gid = unsafe { libc::getgid() };
                     Some(format!("{}:{}", uid, gid))
                 }
-                2 => Some("0:0".to_string()),
+                i if (cfg!(unix) && i == 2) || (!cfg!(unix) && i == 1) => Some("0:0".to_string()),
                 _ => {
                     let custom: String = Input::with_theme(&ColorfulTheme::default())
                         .with_prompt("Enter user:group (e.g. 1000:1000)")
