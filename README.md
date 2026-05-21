@@ -10,6 +10,7 @@ Interactively select a Docker container and open an interactive shell inside it,
 - **User mode** — run as default, host user, root, or custom `user:group`
 - **Working directory** — use the container's default, root `/`, or a custom path
 - **Mount control** — in `--run` mode, choose to mount the current directory at `/workspace`, a custom path, or not at all
+- **Follow logs** — tail container logs with `--log` instead of opening a shell
 - **CLI or interactive** — pass arguments directly or let the menus guide you
 
 ## Prerequisites
@@ -38,7 +39,7 @@ bash build.sh
 Run without arguments to enter interactive menus:
 
 ```bash
-./target/release/docker-shell
+./docker-shell
 ```
 
 ### CLI mode
@@ -47,25 +48,31 @@ Specify options directly:
 
 ```bash
 # Target a specific container
-./target/release/docker-shell --container my-app
+./docker-shell --container my-app
 
 # Choose a shell
-./target/release/docker-shell --container my-app --shell zsh
+./docker-shell --container my-app --shell zsh
 
 # Run as a specific user
-./target/release/docker-shell --container my-app --user root
+./docker-shell --container my-app --user root
 
 # Set a working directory
-./target/release/docker-shell --container my-app --workdir /app
+./docker-shell --container my-app --workdir /app
 
 # Run a new container from an image
-./target/release/docker-shell --run --container ubuntu:latest
+./docker-shell --run --container ubuntu:latest
 
 # Run without mounting the current directory
-./target/release/docker-shell --run --container ubuntu:latest --workdir none
+./docker-shell --run --container ubuntu:latest --workdir none
 
 # Run with a custom mount point
-./target/release/docker-shell --run --container ubuntu:latest --workdir /app
+./docker-shell --run --container ubuntu:latest --workdir /app
+
+# Follow container logs
+./docker-shell --log
+
+# Follow logs for a specific container
+./docker-shell --log --container my-app
 ```
 
 ### Mixed mode
@@ -73,7 +80,7 @@ Specify options directly:
 Use `--custom` to enable interactive menus for options you don't specify on the command line:
 
 ```bash
-./target/release/docker-shell --container my-app --custom
+./docker-shell --container my-app --custom
 ```
 
 ## Arguments
@@ -86,6 +93,7 @@ Use `--custom` to enable interactive menus for options you don't specify on the 
 | `--workdir` | `-w` | Working directory (`default`, `/`, `none`, or custom path) |
 | `container` | — | Name or ID of the target container (or image for `--run`) |
 | `--run` | `-r` | Run a new container from an image instead of entering an existing one |
+| `--log` | — | Follow container logs (`docker logs -f`) instead of exec'ing a shell |
 
 ## How it works
 
@@ -93,7 +101,7 @@ Use `--custom` to enable interactive menus for options you don't specify on the 
 2. Fetches all running containers using the Docker API
 3. Lets you pick a container (fuzzy search in interactive mode)
 4. Determines shell, user, and working directory from args or menus
-5. Executes `docker exec -it` with the resolved options
+5. Executes `docker exec -it` with the resolved options, or `docker logs -f` if `--log` is set
 
 ### `--run` mode
 

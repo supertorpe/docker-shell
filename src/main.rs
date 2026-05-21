@@ -32,6 +32,10 @@ struct Args {
     /// Run a new container from an image instead of entering an existing one
     #[arg(short, long)]
     run: bool,
+
+    /// Follow container logs (docker logs -f) after selecting
+    #[arg(long)]
+    log: bool,
 }
 
 struct ImageInfo {
@@ -95,7 +99,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let container_default_workdir = if chosen_info.0.is_empty() { "/" .to_string() } else { chosen_info.0 };
     let target_container = chosen_info.1;
 
-    // 5. Determine Shell Selection
+    // 5. --log mode: follow container logs instead of exec'ing
+    if args.log {
+        println!("Following logs for {}...", target_container);
+        let mut cmd = Command::new("docker");
+        cmd.arg("logs").arg("-f").arg(&target_container);
+
+        let mut child = cmd.spawn().expect("Failed to execute docker logs command");
+        let status = child.wait().expect("Failed to wait on docker logs child process");
+
+        if !status.success() {
+            std::process::exit(status.code().unwrap_or(1));
+        }
+        return Ok(());
+    }
+
+    // 6. Determine Shell Selection
     let final_shell = match &args.shell {
         Some(s) => s.clone(),
         None if args.custom => {
@@ -117,7 +136,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         None => "bash".to_string(),
     };
 
-    // 6. Determine User Mode
+    // 7. Determine User Mode
     let final_user = match args.user.as_deref() {
         Some(u) => parse_user_mode(u),
         None if args.custom => {
@@ -152,7 +171,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         None => None, // Falls back to Container default
     };
 
-    // 7. Determine Working Directory
+    // 8. Determine Working Directory
     let final_workdir = match args.workdir {
         Some(ref w) if w == "default" => container_default_workdir,
         Some(w) => w,
@@ -176,7 +195,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         None => container_default_workdir,
     };
 
-    // 8. Hand off execution to the native Docker CLI binary
+    // 9. Hand off execution to the native Docker CLI binary
     // Using `execvp` replacing our process gives the shell true TTY interactive pass-through control.
     println!("Connecting to {}...", target_container);
     
