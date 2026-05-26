@@ -2,6 +2,8 @@
 
 Interactively select a Docker container and open an interactive shell inside it, or run a new container from an image.
 
+**Note:** This project has been superseeded by [oh-my-docker](https://github.com/supertorpe/oh-my-docker), a much powerful Docker TUI
+
 ## Features
 
 - **Fuzzy container selection** — type to filter and pick from running containers
